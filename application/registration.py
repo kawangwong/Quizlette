@@ -1,3 +1,4 @@
+# from app import mail
 from flask import (
     Flask,
     render_template,
@@ -12,10 +13,13 @@ import db
 from classes import RegisterForm
 from random import randint
 from passlib.hash import sha256_crypt
-from flask_mail import Mail, Message
+from flask_mail import Message, Mail
 from emailverifier import Client
 from itsdangerous import URLSafeTimedSerializer
 import os, config
+from functools import wraps
+from threading import Thread
+# import socket
 
 registration_blueprint = Blueprint("registration", __name__)
 
@@ -23,7 +27,6 @@ app = Flask(__name__, template_folder="templates", static_url_path="/static")
 app.config.from_object(os.environ.get('config.DevelopementConfig'))
 
 client = Client("at_rFxZz7zEX8CO8V5IDBfzexOe2fW8b")
-
 
 htmlbody = """
 Your account on <b>The Best</b> Quiz App was successfully created.
@@ -68,10 +71,31 @@ def register():
             "Thanks for registering!  Please check your email to confirm your email address.",
             "success",
         )
-        return redirect(url_for("login"))
+        return redirect(url_for("login_page.login"))
         # change in login function to redirect to warning page
 
     return render_template("register.html", form=form)
+
+# def get_local_ip():
+# 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+# 	s.connect(('8.8.8.8', 1))
+# 	local_ip_address = s.getsockname()[0]
+# 	return local_ip_address
+
+"""This here will grab the address of the host where it is hosting to create to be used in a url later on. IPBased commented out for now"""
+def asynck(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        thr = Thread(target=f, args=args, kwargs=kwargs)
+        thr.start()
+
+    return wrapper
+
+@asynck
+def send_async_email(app, msg):
+    with app.app_context():
+        Mail(app).send(msg)
+
 
 def send_email(recipients, html_body):
     try:
@@ -88,20 +112,6 @@ def send_email(recipients, html_body):
         # return(str(e))
         return
 
-
-# def get_local_ip():
-# 	s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-# 	s.connect(('8.8.8.8', 1))
-# 	local_ip_address = s.getsockname()[0]
-# 	return local_ip_address
-
-"""This here will grab the address of the host where it is hosting to create to be used in a url later on. IPBased commented out for now"""
-
-# @asynch   ##unclear of this is needed since the function is invoked in app.py
-# def send_async_email(app, msg):
-#     with app.app_context():
-#         mail.send(msg)
-
 def send_confirmation_email(user_email):
     confirm_serializer = URLSafeTimedSerializer(config.BaseConfig.SECRET_KEY)
     print(user_email)
@@ -112,7 +122,6 @@ def send_confirmation_email(user_email):
         token=confirm_serializer.dumps(user_email, salt="email-confirmation-salt"),
         _external=True,
     )
-    print(confirm_url)
     local_ip = "127.0.0.1"  # "get_local_ip() changed for testing
     x = ""
     if "localhost" in confirm_url:
@@ -120,9 +129,11 @@ def send_confirmation_email(user_email):
     else:
         x = confirm_url.split("127.0.0.1:5000")
     confirm_url = x[0] + local_ip + ":5000" + x[1]
-    html = render_template_string(htmlbody, confirm_url=confirm_url)
 
+    html = render_template_string(htmlbody, confirm_url=confirm_url)
+    print("hi")
     send_email([user_email], html)
+    print(confirm_url)
 
 # """This here salts the secret key and creates a token based off the user email added to secret key"""
 
@@ -136,7 +147,7 @@ def confirm_email(token):
         )
     except:
         flash("The confirmation link is invalid or has expired.", "error")
-        return redirect(url_for("login"))
+        return redirect(url_for("login_page.login"))
 
     cur = db.db.cursor()
     results = cur.execute("SELECT * from users where email = %s", [email])
@@ -152,7 +163,7 @@ def confirm_email(token):
             db.db.commit()
             cur.close()
             flash("Thank you for confirming your email address!", "success")
-            return redirect(url_for("login"))
+            return redirect(url_for("login_page.login"))
         return redirect(url_for("index"))
 
 

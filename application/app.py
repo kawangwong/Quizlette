@@ -16,9 +16,8 @@ from serve_quiz import serve_quiz_blueprint
 from registration import registration_blueprint
 from login import login_blueprint
 # from passlib.hash import sha256_crypt
-from functools import wraps
-from threading import Thread
-# import socket
+# from functools import wraps
+# from threading import Thread
 import os, config
 
 app = Flask(__name__, template_folder="templates", static_url_path="/static")
@@ -28,8 +27,8 @@ app.register_blueprint(serve_quiz_blueprint)
 app.register_blueprint(registration_blueprint)
 app.register_blueprint(login_blueprint)
 
-mail = Mail(app)
 
+mail = Mail(app)
 
 @app.route("/")
 def index():
@@ -371,10 +370,10 @@ def asynch(f):
     return wrapper
 
 
-@asynch
-def send_async_email(app, msg):
-    with app.app_context():
-        mail.send(msg)
+# @asynch
+# def send_async_email(app, msg):
+#     with app.app_context():
+#         mail.send(msg)
 
 
 if __name__ == "__main__":

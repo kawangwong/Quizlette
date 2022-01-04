@@ -44,7 +44,7 @@ def login():
                 ##may need to add if statement for redirect here for teacher.  
             else:
                 error = 'Invalid password'
-                return render_template('login', error=error)
+                return render_template('login.html', error=error)
             cur.close()
         else:
             error = 'Username not found'
